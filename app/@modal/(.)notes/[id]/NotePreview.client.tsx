@@ -20,6 +20,7 @@ export default function NotePreviewClient({ id }: Props) {
   } = useQuery({
     queryKey: ['note', id],
     queryFn: () => fetchNoteById(id),
+    refetchOnMount: false
   });
 
   if (isLoading) return <Modal>Loading note...</Modal>;
