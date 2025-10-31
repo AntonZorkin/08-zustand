@@ -8,14 +8,12 @@ import NoteList from '@/components/NoteList/NoteList';
 import SearchBox from '@/components/SearchBox/SearchBox';
 import Loader from '@/components/Loader/Loader';
 import ErrorMessage from '@/components/ErrorMessage/ErrorMessage';
-import Modal from '@/components/Modal/Modal';
-import NoteForm from '@/components/NoteForm/NoteForm';
 import { useDebounce } from 'use-debounce';
 import {
   keepPreviousData,
   useQuery,
-  useQueryClient,
 } from '@tanstack/react-query';
+import Link from 'next/link';
 
 interface NotesClientProps {
   initialPage: number;
@@ -32,8 +30,6 @@ export default function NotesClient({
 }: NotesClientProps) {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [searchNote, setSearchNote] = useState(initialSearch);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
   const [debouncedSearch] = useDebounce(searchNote, 500);
 
   const { data, isLoading, isError, isSuccess } = useQuery<NotesHttpResponse>({
@@ -69,18 +65,6 @@ export default function NotesClient({
     setSearchNote(query);
   };
 
-  const handleCreated = () => {
-    closeModal();
-    queryClient.invalidateQueries({ queryKey: ['notes'] });
-  };
-
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
-
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
@@ -93,18 +77,11 @@ export default function NotesClient({
             setCurrentPage={setCurrentPage}
           />
         )}
-        <button onClick={openModal} className={css.button}>
-          Create note +
-        </button>
+        <Link href="/notes/action/create" className={css.button}>Create note +</Link>
       </header>
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
       {data?.notes && data.notes.length > 0 && <NoteList notes={data!.notes} />}
-      {isModalOpen && (
-        <Modal onClose={closeModal}>
-          <NoteForm onCancel={closeModal} onCreated={handleCreated} />
-        </Modal>
-      )}
     </div>
   );
 }
