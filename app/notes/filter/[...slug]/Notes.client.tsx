@@ -1,7 +1,6 @@
 'use client';
 import css from './NotesPage.module.css';
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from 'react';
 import { fetchNotes, type NotesHttpResponse } from '@/lib/api';
 import Pagination from '@/components/Pagination/Pagination';
 import NoteList from '@/components/NoteList/NoteList';
@@ -9,79 +8,70 @@ import SearchBox from '@/components/SearchBox/SearchBox';
 import Loader from '@/components/Loader/Loader';
 import ErrorMessage from '@/components/ErrorMessage/ErrorMessage';
 import { useDebounce } from 'use-debounce';
-import {
-  keepPreviousData,
-  useQuery,
-} from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
 interface NotesClientProps {
-  initialPage: number;
-  initialPerPage: number;
-  initialSearch: string;
   tag?: string;
 }
 
-export default function NotesClient({
-  initialPage,
-  initialPerPage,
-  initialSearch,
-  tag,
-}: NotesClientProps) {
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  const [searchNote, setSearchNote] = useState(initialSearch);
+const INITIAL_PAGE = 1;
+const PER_PAGE = 12;
+const INITIAL_SEARCH = '';
+
+export default function NotesClient({ tag }: NotesClientProps) {
+  const [currentPage, setCurrentPage] = useState(INITIAL_PAGE);
+  const [searchNote, setSearchNote] = useState(INITIAL_SEARCH);
   const [debouncedSearch] = useDebounce(searchNote, 500);
 
-  const { data, isLoading, isError, isSuccess } = useQuery<NotesHttpResponse>({
-    queryKey: ['notes', currentPage, debouncedSearch, tag],
+  useEffect(() => {
+    setCurrentPage(INITIAL_PAGE);
+  }, [tag]);
+
+  const { data, isLoading, isError } = useQuery<NotesHttpResponse>({
+    queryKey: ['notes', currentPage, debouncedSearch, tag, PER_PAGE],
     queryFn: () =>
       fetchNotes({
         page: currentPage,
-        perPage: initialPerPage,
+        perPage: PER_PAGE,
         search: debouncedSearch.trim(),
         tag,
       }),
     placeholderData: keepPreviousData,
   });
 
-  useEffect(() => {
-    if (
-      isSuccess &&
-      debouncedSearch.trim() !== '' &&
-      data?.notes.length === 0
-    ) {
-      toast.error('No notes found for your search.', { id: 'no-results' });
-    }
-  }, [isSuccess, data?.notes, debouncedSearch]);
-
-  useEffect(() => {
-    if (isSuccess && tag !== 'All' && debouncedSearch.trim() === '' && data?.notes.length === 0) {
-      toast.error('No notes found in this category.', { id: 'no-results' });
-    }
-  }, [isSuccess, data?.notes, debouncedSearch, tag]);
-
   const handleChange = (query: string) => {
-    setCurrentPage(1);
+    setCurrentPage(INITIAL_PAGE);
     setSearchNote(query);
   };
+
+  const notes = data?.notes ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        <SearchBox onChange={handleChange} />
+        <SearchBox value={searchNote} onChange={handleChange} />
 
-        {isSuccess && !isError && data?.totalPages > 1 && (
+        {notes.length > 0 && (
           <Pagination
             currentPage={currentPage}
-            totalPages={data?.totalPages || 1}
+            totalPages={totalPages}
             setCurrentPage={setCurrentPage}
           />
         )}
-        <Link href="/notes/action/create" className={css.button}>Create note +</Link>
+        <Link href="/notes/action/create" className={css.button}>
+          Create note +
+        </Link>
       </header>
+
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
-      {data?.notes && data.notes.length > 0 && <NoteList notes={data!.notes} />}
+
+      {notes.length > 0 && <NoteList notes={notes} />}
+      {!isLoading && !isError && notes.length === 0 && (
+        <p className={css.empty}>No notes found.</p>
+      )}
     </div>
   );
 }
