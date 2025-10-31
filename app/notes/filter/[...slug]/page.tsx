@@ -53,7 +53,7 @@ export default async function NotesPage({ params }: Props) {
 
   try {
     await queryClient.prefetchQuery({
-      queryKey: ['notes', INITIAL_PAGE, INITIAL_SEARCH, tag],
+      queryKey: ['notes', INITIAL_PAGE, INITIAL_PER_PAGE, INITIAL_SEARCH, tag],
       queryFn: () =>
         fetchNotes({
           page: INITIAL_PAGE,
@@ -70,9 +70,6 @@ export default async function NotesPage({ params }: Props) {
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <NotesClient
-        initialPage={INITIAL_PAGE}
-        initialPerPage={INITIAL_PER_PAGE}
-        initialSearch={INITIAL_SEARCH}
         tag={tag}
       />
     </HydrationBoundary>
